@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>동아리 메신저</title>
+  <style>
+
+/* =============================================================
+   CSS 변수 (색상·크기를 한 곳에서 관리)
+   파이썬 상수처럼, 값을 한 번만 선언하고 여러 곳에서 재사용해요.
+   나중에 색상을 바꾸고 싶으면 여기 한 줄만 수정하면 됩니다!
+   사용법: color: var(--purple);  처럼 씁니다.
+============================================================= */
+:root {
+  --purple:       #534AB7;   /* 메인 색상 - 내 메시지 배경 */
+  --purple-light: #EEEDFE;   /* 보라 연한 버전 - 배경 등 */
+  --purple-dark:  #3C3489;   /* 보라 진한 버전 - hover 등 */
+  --green:        #1D9E75;   /* 초록 - 온라인 표시 */
+  --bg:           #ffffff;   /* 흰 배경 */
+  --bg2:          #f7f6f2;   /* 아주 연한 회색 배경 */
+  --bg3:          #eeede8;   /* 그보다 조금 진한 배경 */
+  --text:         #1a1a1a;   /* 기본 글자 색 */
+  --text2:        #5a5a58;   /* 보조 글자 색 */
+  --text3:        #9a9996;   /* 흐린 글자 색 (힌트 등) */
+  --border:       rgba(0,0,0,0.10);  /* 테두리 */
+  --radius:       12px;      /* 둥근 모서리 */
+}
+
+/* 모든 요소에 기본 설정 적용 */
+* {
+  box-sizing: border-box; /* padding이 요소 크기에 포함되게 */
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+  background: var(--bg2);
+  height: 100vh;
+  overflow: hidden; /* 페이지 자체 스크롤 없애기 */
+}
+
+
+/* =============================================================
+   로그인 화면
+   처음 앱을 열면 이 화면이 나타납니다.
+   이름 입력 → 로그인 버튼 → 메신저 화면으로 전환
+============================================================= */
+#login-screen {
+  display: flex;
+  align-items: center;     /* 세로 중앙 */
+  justify-content: center; /* 가로 중앙 */
+  height: 100vh;
+  background: linear-gradient(135deg, var(--purple-light) 0%, #E6F1FB 100%);
+}
+
+.login-card {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  width: 360px;
+  box-shadow: 0 20px 60px rgba(83, 74, 183, 0.15);
+  text-align: center;
+}
+
+.login-logo {
+  width: 64px;
+  height: 64px;
+  background: var(--purple);
+  border-radius: 50%;     /* 원형 */
+  margin: 0 auto 20px;   /* 가운데 정렬 + 아래 여백 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+
+.login-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.login-sub {
+  font-size: 13px;
+  color: var(--text3);
+  margin-bottom: 28px;
+}
+
+/* 입력창 스타일 */
+.login-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 15px;
+  outline: none;          /* 기본 파란 테두리 제거 */
+  margin-bottom: 12px;
+  transition: border-color 0.2s; /* 부드러운 색상 전환 */
+  font-family: inherit;
+}
+
+/* 입력창 클릭(포커스)하면 보라색 테두리 */
+.login-input:focus {
+  border-color: var(--purple);
+}
+
+/* 로그인 버튼 */
+.login-btn {
+  width: 100%;
+  padding: 13px;
+  background: var(--purple);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;        /* 마우스를 올리면 손가락 모양 */
+  transition: background 0.2s, transform 0.1s;
+}
+
+.login-btn:hover { background: var(--purple-dark); }
+.login-btn:active { transform: scale(0.98); } /* 누를 때 살짝 작아짐 */
+
+/* 로그인 화면 하단 안내 */
+.login-note {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--text3);
+  line-height: 1.7;
+  background: var(--bg2);
+  padding: 12px;
+  border-radius: 8px;
+  text-align: left;
+}
+.login-note b { color: var(--purple); }
+
+
+/* =============================================================
+   메인 앱 화면 (로그인 후)
+   가로 방향 flex: [사이드바] [채팅창] [설명패널(토글)]
+============================================================= */
+#app-screen {
+  display: none;     /* 처음엔 숨김 */
+  height: 100vh;
+  flex-direction: row;
+}
+
+#app-screen.visible {
+  display: flex;     /* 로그인 후 flex로 보이기 */
+}
+
+
+/* =============================================================
+   사이드바 (왼쪽 패널)
+   - 내 프로필
+   - 채팅방 목록
+   - 온라인 유저 목록
+============================================================= */
+#sidebar {
+  width: 260px;
+  min-width: 260px;    /* 줄어들지 않게 */
+  background: var(--bg);
+  border-right: 0.5px solid var(--border);
+  display: flex;
+  flex-direction: column; /* 세로로 쌓기 */
+  overflow: hidden;
+}
+
+/* 내 프로필 영역 */
+.sidebar-profile {
+  padding: 16px;
+  border-bottom: 0.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 아바타 (원형 프로필 사진 대신 이니셜 표시) */
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0; /* 아바타 크기 고정 (줄어들지 않게) */
+}
+
+.profile-name  { font-size: 14px; font-weight: 600; color: var(--text); }
+.profile-status { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+/* 섹션 제목 */
+.sidebar-section-title {
+  padding: 12px 16px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  letter-spacing: 0.05em; /* 글자 간격 살짝 넓히기 */
+  text-transform: uppercase;
+}
+
+/* 채팅방 항목 */
+.room-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.room-item:hover  { background: var(--bg2); }
+.room-item.active { background: var(--purple-light); } /* 현재 방은 보라색 배경 */
+
+.room-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.room-info { flex: 1; min-width: 0; } /* min-width:0 = 텍스트 말줄임 작동하게 */
+.room-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.room-last-msg {
+  font-size: 11px;
+  color: var(--text3);
+  white-space: nowrap;    /* 줄바꿈 금지 */
+  overflow: hidden;       /* 넘치면 숨김 */
+  text-overflow: ellipsis; /* 숨긴 부분에 "..." 표시 */
+}
+
+/* 온라인 유저 목록 (나머지 공간 채우기) */
+.online-list {
+  flex: 1;
+  overflow-y: auto;  /* 많아지면 스크롤 */
+  padding: 4px 0;
+}
+
+.online-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+}
+
+.online-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.online-name { font-size: 13px; color: var(--text2); }
+.online-me   { font-size: 11px; color: var(--text3); }
+
+/* 코드 설명 버튼 */
+.help-btn {
+  margin: 12px;
+  padding: 10px 14px;
+  background: var(--purple-light);
+  color: var(--purple);
+  border: none;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: calc(100% - 24px); /* 양쪽 margin 12px씩 제외 */
+  transition: background 0.15s;
+}
+.help-btn:hover { background: #dddcfe; }
+
+
+/* =============================================================
+   채팅 영역 (가운데)
+   - 헤더 (채팅방 이름)
+   - 메시지 목록 (스크롤 가능)
+   - 입력창 + 전송 버튼
+============================================================= */
+#chat-area {
+  flex: 1;              /* 남은 공간 전부 차지 */
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg);
+  border-right: 0.5px solid var(--border);
+}
+
+/* 채팅창 상단 헤더 */
+.chat-header {
+  padding: 14px 20px;
+  border-bottom: 0.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0; /* 헤더 크기 고정 */
+}
+
+.chat-room-icon  { font-size: 24px; }
+.chat-room-name  { font-size: 16px; font-weight: 600; color: var(--text); }
+.chat-room-desc  { font-size: 12px; color: var(--text3); margin-top: 1px; }
+
+/* 메시지가 표시되는 영역 */
+.chat-messages {
+  flex: 1;           /* 헤더·입력창 제외한 나머지 공간 */
+  overflow-y: auto;  /* 메시지 많아지면 스크롤 */
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 날짜 구분선 (예: "오늘") */
+.date-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.date-divider::before,
+.date-divider::after {
+  content: '';
+  flex: 1;
+  height: 0.5px;
+  background: var(--border);
+}
+
+.date-divider span {
+  font-size: 11px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+/* 메시지 한 행 */
+.msg-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+/* 내 메시지는 오른쪽 정렬 */
+.msg-row.mine {
+  flex-direction: row-reverse;
+}
+
+/* 아바타 (메시지 옆 원형) */
+.msg-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+  flex-shrink: 0;
+  align-self: flex-end;
+  margin-bottom: 2px;
+}
+
+/* 메시지 내용 감싸는 컨테이너 */
+.msg-content-wrap {
+  display: flex;
+  flex-direction: column;
+  max-width: 65%; /* 화면의 65% 이상은 넘지 않게 */
+}
+
+.msg-row.mine .msg-content-wrap {
+  align-items: flex-end; /* 내 메시지: 오른쪽 정렬 */
+}
+
+/* 보낸 사람 이름 (상대방 메시지에만 표시) */
+.msg-sender-name {
+  font-size: 11px;
+  color: var(--text3);
+  margin-bottom: 3px;
+  padding-left: 4px;
+}
+
+/* 시간 + 말풍선을 나란히 */
+.bubble-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.msg-row.mine .bubble-row {
+  flex-direction: row-reverse; /* 내 것: 시간이 왼쪽에 */
+}
+
+/* 말풍선 (실제 메시지 내용) */
+.msg-bubble {
+  padding: 9px 14px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word; /* 긴 단어 줄바꿈 */
+  white-space: pre-wrap;  /* 줄바꿈 유지 */
+}
+
+/* 내 메시지: 보라색 배경, 오른쪽 아래 모서리만 날카롭게 */
+.msg-bubble.mine {
+  background: var(--purple);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+/* 상대방 메시지: 회색 배경, 왼쪽 아래 모서리만 날카롭게 */
+.msg-bubble.others {
+  background: var(--bg2);
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+}
+
+/* 메시지 시간 */
+.msg-time {
+  font-size: 10px;
+  color: var(--text3);
+  white-space: nowrap;
+  margin-bottom: 3px;
+  flex-shrink: 0;
+}
+
+/* 시스템 메시지 (예: "기혁님이 입장했습니다") */
+.system-msg {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text3);
+  padding: 4px 0;
+  margin: 6px 0;
+}
+
+/* 채팅 비어있을 때 안내 */
+.chat-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--text3);
+}
+
+.chat-empty-icon { font-size: 48px; }
+.chat-empty-text { font-size: 14px; }
+
+/* 입력 힌트 (Enter = 전송 등) */
+.input-hint {
+  font-size: 11px;
+  color: var(--text3);
+  padding: 4px 20px;
+  flex-shrink: 0;
+}
+
+/* 메시지 입력 영역 */
+.chat-input-area {
+  padding: 12px 20px 16px;
+  border-top: 0.5px solid var(--border);
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+/* 텍스트 입력창 */
+.input-box {
+  flex: 1;
+  background: var(--bg2);
+  border: 0.5px solid var(--border);
+  border-radius: 20px;
+  padding: 10px 16px;
+  font-size: 14px;
+  outline: none;
+  resize: none;        /* 수동 크기 조절 비활성화 */
+  max-height: 120px;   /* 최대 높이 */
+  min-height: 40px;    /* 최소 높이 */
+  font-family: inherit;
+  line-height: 1.5;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.input-box:focus {
+  border-color: var(--purple);
+  background: white;
+}
+
+/* 전송 버튼 (원형) */
+.send-btn {
+  width: 40px;
+  height: 40px;
+  background: var(--purple);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, transform 0.1s;
+  flex-shrink: 0;
+}
+
+.send-btn:hover  { background: var(--purple-dark); }
+.send-btn:active { transform: scale(0.9); }
+
+
+/* =============================================================
+   코드 설명 패널 (오른쪽 토글 패널)
+   "코드 이해하기" 버튼을 누르면 열립니다.
+============================================================= */
+#explanation-panel {
+  width: 0;
+  overflow: hidden;
+  background: white;
+  border-left: 0.5px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease; /* 부드러운 열림/닫힘 */
+  flex-shrink: 0;
+}
+
+#explanation-panel.open {
+  width: 340px;
+  overflow-y: auto;
+}
+
+.exp-header {
+  padding: 16px;
+  border-bottom: 0.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  min-width: 340px; /* 패널 내부 내용 최소 너비 */
+}
+
+.exp-title { font-size: 14px; font-weight: 600; color: var(--text); }
+
+.exp-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--text3);
+  padding: 4px;
+  border-radius: 6px;
+}
+.exp-close:hover { background: var(--bg2); }
+
+.exp-section {
+  padding: 14px 16px;
+  border-bottom: 0.5px solid var(--border);
+  min-width: 340px;
+}
+
+.exp-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--purple);
+  margin-bottom: 8px;
+}
+
+.exp-text {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.75;
+  margin-bottom: 8px;
+}
+
+/* 코드 예시 블록 */
+.exp-code {
+  background: var(--bg2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: 'SF Mono', 'Consolas', 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.9;
+  margin-bottom: 8px;
+  border-left: 3px solid var(--purple);
+  overflow-x: auto;
+}
+
+/* 코드 블록 안 색상 강조 */
+.exp-code .kw  { color: #534AB7; font-weight: 600; } /* 키워드 (const, if, ...) */
+.exp-code .fn  { color: #1D9E75; }                   /* 함수 이름 */
+.exp-code .str { color: #D85A30; }                   /* 문자열 */
+.exp-code .cm  { color: var(--text3); font-style: italic; } /* 주석 */
+.exp-code .num { color: #0C447C; }                   /* 숫자 */
+
+/* 팁 박스 */
+.exp-tip {
+  background: #E1F5EE;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: #085041;
+  line-height: 1.7;
+}
+
+/* 스크롤바 얇게 */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 2px; }
+
+/* 모바일에서 사이드바/설명패널 숨기기 */
+@media (max-width: 640px) {
+  #sidebar { display: none; }
+  #explanation-panel { display: none !important; }
+}
+
+  </style>
+</head>
+<body>
+
+<!--
+  ================================================================
+  HTML 구조 설명
+
+  이 파일은 3개의 큰 섹션으로 나뉩니다:
+  1. #login-screen   → 로그인 화면 (처음에 보임)
+  2. #app-screen     → 메인 앱 화면 (로그인 후 보임)
+     ├── #sidebar          → 왼쪽 채팅방/유저 목록
+     ├── #chat-area        → 가운데 채팅창
+     └── #explanation-panel → 오른쪽 코드 설명 (토글)
+  3. <script>        → JavaScript 코드 (맨 아래)
+  ================================================================
+-->
+
+
+<!-- ============================================================
+  1. 로그인 화면
+  id="login-screen" → JavaScript에서 이 요소를 찾을 때 사용
+============================================================ -->
+<div id="login-screen">
+  <div class="login-card">
+
+    <div class="login-logo">💬</div>
+    <div class="login-title">동아리 메신저</div>
+    <div class="login-sub">이름을 입력하고 채팅을 시작하세요</div>
+
+    <!-- 이름 입력창 -->
+    <!-- id="name-input" → JS에서 document.getElementById('name-input')으로 찾음 -->
+    <input
+      type="text"
+      id="name-input"
+      class="login-input"
+      placeholder="이름 입력 (예: 기혁, 지후, 예지...)"
+      maxlength="10"
+      autocomplete="off"
+    >
+
+    <!-- 로그인 버튼: onclick 속성으로 JS 함수 직접 호출 -->
+    <button class="login-btn" onclick="login()">입장하기 →</button>
+
+    <div class="login-note">
+      💡 <b>탭을 여러 개</b> 열고 각각 다른 이름으로 입장하면<br>
+      실제처럼 서로 메시지를 주고받을 수 있어요!<br><br>
+      📖 <b>코드 이해하기</b> 버튼을 누르면 각 기능의<br>
+      코드 설명을 볼 수 있어요.
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ============================================================
+  2. 메인 앱 화면
+  display:none → 처음엔 숨김, 로그인 후 JS로 visible 클래스 추가
+============================================================ -->
+<div id="app-screen">
+
+  <!-- ── 사이드바 (왼쪽) ── -->
+  <div id="sidebar">
+
+    <!-- 내 프로필 -->
+    <div class="sidebar-profile">
+      <!-- id="my-avatar" → 로그인 시 이름 첫 글자로 업데이트 -->
+      <div class="avatar" id="my-avatar">?</div>
+      <div>
+        <div class="profile-name" id="my-name-display">이름</div>
+        <div class="profile-status">🟢 온라인</div>
+      </div>
+    </div>
+
+    <!-- 채팅방 목록 -->
+    <div class="sidebar-section-title">채팅방</div>
+    <div id="room-list">
+
+      <!-- 각 채팅방: onclick으로 enterRoom() 호출, id로 활성화 표시 관리 -->
+      <div class="room-item active" onclick="enterRoom('general')" id="room-general">
+        <div class="room-icon" style="background:#EEEDFE; font-size:18px">🌐</div>
+        <div class="room-info">
+          <div class="room-name">전체 채팅</div>
+          <div class="room-last-msg" id="last-general">메시지가 없어요</div>
+        </div>
+      </div>
+
+      <div class="room-item" onclick="enterRoom('study')" id="room-study">
+        <div class="room-icon" style="background:#E1F5EE; font-size:18px">📚</div>
+        <div class="room-info">
+          <div class="room-name">공부방</div>
+          <div class="room-last-msg" id="last-study">메시지가 없어요</div>
+        </div>
+      </div>
+
+      <div class="room-item" onclick="enterRoom('free')" id="room-free">
+        <div class="room-icon" style="background:#FAECE7; font-size:18px">🎮</div>
+        <div class="room-info">
+          <div class="room-name">자유채팅</div>
+          <div class="room-last-msg" id="last-free">메시지가 없어요</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 온라인 유저 목록 (JS로 동적 생성) -->
+    <div class="sidebar-section-title">현재 접속 중</div>
+    <div class="online-list" id="online-list">
+      <!-- renderOnlineUsers() 함수가 여기에 항목들을 추가합니다 -->
+    </div>
+
+    <!-- 코드 설명 토글 버튼 -->
+    <button class="help-btn" onclick="toggleExplanation()">
+      📖 코드 이해하기 (학습용)
+    </button>
+
+  </div><!-- /sidebar -->
+
+
+  <!-- ── 채팅 영역 (가운데) ── -->
+  <div id="chat-area">
+
+    <!-- 채팅방 헤더 (방 이름·설명 표시) -->
+    <div class="chat-header">
+      <span id="current-room-icon" style="font-size:24px">🌐</span>
+      <div>
+        <div class="chat-room-name" id="current-room-name">전체 채팅</div>
+        <div class="chat-room-desc" id="current-room-desc">모든 팀원이 볼 수 있는 채팅방</div>
+      </div>
+    </div>
+
+    <!-- 메시지가 표시되는 스크롤 영역 -->
+    <div class="chat-messages" id="chat-messages">
+      <!-- 처음엔 빈 상태 안내 -->
+      <div class="chat-empty" id="empty-state">
+        <div class="chat-empty-icon">💬</div>
+        <div class="chat-empty-text">첫 메시지를 보내보세요!</div>
+      </div>
+    </div>
+
+    <div class="input-hint">Enter = 전송 &nbsp;·&nbsp; Shift+Enter = 줄바꿈</div>
+
+    <!-- 메시지 입력 영역 -->
+    <div class="chat-input-area">
+      <!--
+        textarea = 여러 줄 입력 가능한 입력창
+        onkeydown: 키를 눌렀을 때 → handleKeydown() 호출
+        oninput: 내용이 바뀔 때 → autoResize() 호출 (높이 자동 조절)
+      -->
+      <textarea
+        id="msg-input"
+        class="input-box"
+        placeholder="메시지 입력..."
+        rows="1"
+        onkeydown="handleKeydown(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+
+      <button class="send-btn" onclick="sendMessage()" title="전송 (Enter)">
+        &#10148; <!-- ▶ 기호 -->
+      </button>
+    </div>
+
+  </div><!-- /chat-area -->
+
+
+  <!-- ── 코드 설명 패널 (오른쪽, 토글) ── -->
+  <div id="explanation-panel">
+
+    <div class="exp-header">
+      <div class="exp-title">📖 코드 이해하기</div>
+      <button class="exp-close" onclick="toggleExplanation()" title="닫기">✕</button>
+    </div>
+
+    <!-- ── 설명 1: 전체 구조 ── -->
+    <div class="exp-section">
+      <div class="exp-section-title">🗺 이 앱의 전체 구조</div>
+      <div class="exp-text">
+        이 메신저는 <b>HTML + CSS + JavaScript</b> 세 가지로 만들어졌습니다.<br><br>
+        • <b>HTML</b>: 화면 구조 (버튼, 입력창, 메시지창…)<br>
+        • <b>CSS</b>: 스타일 (색상, 크기, 배치…)<br>
+        • <b>JavaScript</b>: 동작 (로그인, 메시지 전송, 실시간 통신…)
+      </div>
+      <div class="exp-code">
+<span class="cm">// JavaScript 코드 전체 흐름</span>
+<span class="num">1.</span> login()       <span class="cm">→ 이름 저장, 화면 전환</span>
+<span class="num">2.</span> sendMessage() <span class="cm">→ 메시지 전송 + 저장</span>
+<span class="num">3.</span> renderMessage() <span class="cm">→ 화면에 말풍선 추가</span>
+<span class="num">4.</span> BroadcastChannel <span class="cm">→ 다른 탭에 전달</span>
+<span class="num">5.</span> localStorage  <span class="cm">→ 메시지 저장(영구)</span></div>
+      <div class="exp-tip">💡 파이썬으로 비유하면: HTML = print(), CSS = 출력 형식, JavaScript = 함수·로직!</div>
+    </div>
+
+    <!-- ── 설명 2: BroadcastChannel ── -->
+    <div class="exp-section">
+      <div class="exp-section-title">📡 BroadcastChannel — 탭 간 실시간 통신</div>
+      <div class="exp-text">
+        여러 탭이 같은 "채널 이름"을 열면 서로 메시지를 주고받을 수 있어요.
+        실제 서버 없이도 탭끼리 통신할 수 있는 브라우저 내장 기능입니다.
+      </div>
+      <div class="exp-code">
+<span class="cm">// 채널 열기 (같은 이름 = 같은 채널)</span>
+<span class="kw">const</span> ch = <span class="kw">new</span> <span class="fn">BroadcastChannel</span>(<span class="str">'club-messenger'</span>);
+
+<span class="cm">// 다른 탭들에게 데이터 보내기</span>
+ch.<span class="fn">postMessage</span>({
+  type: <span class="str">'chat'</span>,
+  text: <span class="str">"안녕!"</span>,
+  sender: <span class="str">"기혁"</span>
+});
+
+<span class="cm">// 다른 탭에서 온 데이터 받기</span>
+ch.<span class="fn">onmessage</span> = (event) => {
+  <span class="kw">const</span> data = event.data;
+  <span class="fn">console</span>.<span class="fn">log</span>(data.sender, data.text);
+};</div>
+      <div class="exp-tip">💡 파이썬의 socket과 비슷하지만, 같은 컴퓨터의 탭끼리만 통신해요. 진짜 서버가 있으면 Socket.IO를 쓰는데, 그건 가이드의 "지후" 역할입니다!</div>
+    </div>
+
+    <!-- ── 설명 3: localStorage ── -->
+    <div class="exp-section">
+      <div class="exp-section-title">💾 localStorage — 브라우저에 데이터 저장</div>
+      <div class="exp-text">
+        브라우저에 데이터를 저장하는 방법이에요.
+        새로고침하거나 브라우저를 껐다 켜도 데이터가 남아있어요.
+        메시지 기록이 여기에 저장됩니다.
+      </div>
+      <div class="exp-code">
+<span class="cm">// 저장 (문자열만 가능!)</span>
+<span class="fn">localStorage</span>.<span class="fn">setItem</span>(<span class="str">'key'</span>, <span class="str">'값'</span>);
+
+<span class="cm">// 객체를 저장하려면 JSON.stringify로 변환</span>
+<span class="kw">const</span> msgs = [{ text: <span class="str">"안녕"</span> }];
+<span class="fn">localStorage</span>.<span class="fn">setItem</span>(<span class="str">'msgs'</span>,
+  <span class="fn">JSON</span>.<span class="fn">stringify</span>(msgs)  <span class="cm">// 배열 → 문자열</span>
+);
+
+<span class="cm">// 불러오기</span>
+<span class="kw">const</span> loaded = <span class="fn">JSON</span>.<span class="fn">parse</span>(
+  <span class="fn">localStorage</span>.<span class="fn">getItem</span>(<span class="str">'msgs'</span>)
+);  <span class="cm">// 문자열 → 배열</span></div>
+      <div class="exp-tip">💡 파이썬의 json.dump() / json.load()와 같아요! JSON.stringify = 저장, JSON.parse = 불러오기.</div>
+    </div>
+
+    <!-- ── 설명 4: DOM 조작 ── -->
+    <div class="exp-section">
+      <div class="exp-section-title">🎨 DOM 조작 — 화면을 코드로 바꾸기</div>
+      <div class="exp-text">
+        JavaScript로 HTML 요소를 <b>찾고</b>, <b>만들고</b>, <b>추가</b>합니다.
+        메시지 말풍선이 화면에 나타나는 것도 이 방법이에요.
+      </div>
+      <div class="exp-code">
+<span class="cm">// id로 요소 찾기</span>
+<span class="kw">const</span> area = <span class="fn">document</span>.<span class="fn">getElementById</span>(<span class="str">'chat-messages'</span>);
+
+<span class="cm">// 새 div 요소 만들기</span>
+<span class="kw">const</span> bubble = <span class="fn">document</span>.<span class="fn">createElement</span>(<span class="str">'div'</span>);
+bubble.className = <span class="str">'msg-bubble mine'</span>; <span class="cm">// CSS 클래스 적용</span>
+bubble.textContent = <span class="str">"안녕하세요!"</span>; <span class="cm">// 내용</span>
+
+<span class="cm">// 화면(DOM)에 추가하기</span>
+area.<span class="fn">appendChild</span>(bubble);</div>
+      <div class="exp-tip">💡 파이썬 tkinter의 Label() 만들고 pack()으로 붙이는 것과 같아요! createElement = 위젯 생성, appendChild = pack().</div>
+    </div>
+
+    <!-- ── 설명 5: 화살표 함수 ── -->
+    <div class="exp-section">
+      <div class="exp-section-title">➜ 화살표 함수 &amp; 템플릿 리터럴</div>
+      <div class="exp-text">
+        JavaScript에서 함수를 짧게 쓰는 방법과,
+        문자열 안에 변수를 넣는 방법이에요.
+      </div>
+      <div class="exp-code">
+<span class="cm">// 일반 함수</span>
+<span class="kw">function</span> <span class="fn">greet</span>(name) {
+  <span class="kw">return</span> <span class="str">"안녕, "</span> + name + <span class="str">"!"</span>;
+}
+
+<span class="cm">// 화살표 함수 (같은 기능, 더 짧게)</span>
+<span class="kw">const</span> <span class="fn">greet</span> = (name) => <span class="str">`안녕, ${name}!`</span>;
+<span class="cm">//                       ↑ 백틱(`) 사용  ↑ ${변수}</span>
+
+<span class="cm">// 파이썬 비교</span>
+<span class="cm"># greet = lambda name: f"안녕, {name}!"</span></div>
+      <div class="exp-tip">💡 JS의 `${변수}` = 파이썬의 f"문자열 {변수}". 백틱(`)은 키보드 왼쪽 위 숫자 1 왼쪽에 있어요!</div>
+    </div>
+
+    <!-- ── 설명 6: 이벤트 리스너 ── -->
+    <div class="exp-section">
+      <div class="exp-section-title">👂 이벤트 리스너 — 사용자 행동 감지</div>
+      <div class="exp-text">
+        버튼 클릭, 키보드 입력 등 사용자가 무언가를 하면
+        미리 등록한 함수가 실행됩니다.
+      </div>
+      <div class="exp-code">
+<span class="cm">// 클릭 이벤트</span>
+<span class="kw">const</span> btn = <span class="fn">document</span>.<span class="fn">getElementById</span>(<span class="str">'send-btn'</span>);
+btn.<span class="fn">addEventListener</span>(<span class="str">'click'</span>, () => {
+  <span class="fn">sendMessage</span>();
+});
+
+<span class="cm">// 키보드 이벤트</span>
+input.<span class="fn">addEventListener</span>(<span class="str">'keydown'</span>, (e) => {
+  <span class="kw">if</span> (e.key === <span class="str">'Enter'</span> && !e.shiftKey) {
+    e.<span class="fn">preventDefault</span>(); <span class="cm">// 기본 동작 막기</span>
+    <span class="fn">sendMessage</span>();
+  }
+});</div>
+      <div class="exp-tip">💡 파이썬 tkinter의 button.bind('&lt;Button-1&gt;', handler)와 같아요! 어떤 이벤트가 생기면 어떤 함수를 실행할지 등록하는 거예요.</div>
+    </div>
+
+    <!-- ── 설명 7: async/await ── -->
+    <div class="exp-section">
+      <div class="exp-section-title">⏳ async/await — 기다리는 코드 (심화)</div>
+      <div class="exp-text">
+        실제 서버에서 데이터를 받을 때처럼,
+        "기다려야 하는" 작업에 사용해요.
+        가이드의 "영민" 역할에서 Axios + async/await를 씁니다.
+      </div>
+      <div class="exp-code">
+<span class="cm">// async: "이 함수엔 기다릴 것이 있어요"</span>
+<span class="kw">const</span> <span class="fn">loadMessages</span> = <span class="kw">async</span> (roomId) => {
+  <span class="cm">// await: "응답이 올 때까지 여기서 기다려요"</span>
+  <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">`/api/messages/${roomId}`</span>);
+  <span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>();
+  <span class="kw">return</span> data;
+};
+
+<span class="cm">// 파이썬 requests와 비교</span>
+<span class="cm"># res = requests.get(f"/api/messages/{room_id}")</span>
+<span class="cm"># data = res.json()</span></div>
+      <div class="exp-tip">💡 파이썬의 requests.get()은 응답을 받을 때까지 그냥 기다리는데, JS의 await도 마찬가지예요. 단, await 없이 실행하면 응답도 안 왔는데 다음 줄이 실행되는 문제가 생겨요!</div>
+    </div>
+
+    <!-- ── 설명 8: 실제 서버로 확장하기 ── -->
+    <div class="exp-section">
+      <div class="exp-section-title">🚀 실제 서버로 확장하기</div>
+      <div class="exp-text">
+        지금 이 앱은 <b>같은 컴퓨터 탭끼리만</b> 통신해요.<br>
+        다른 컴퓨터와도 채팅하려면 가이드처럼 서버가 필요해요.
+      </div>
+      <div class="exp-code">
+<span class="cm">// 지금 (BroadcastChannel - 탭끼리만)</span>
+channel.<span class="fn">postMessage</span>({ text: <span class="str">"안녕"</span> });
+
+<span class="cm">// 실제 서버 (Socket.IO - 인터넷 어디서나)</span>
+<span class="cm">// 가이드의 "지후" 역할!</span>
+<span class="kw">const</span> socket = <span class="fn">io</span>(<span class="str">'http://서버주소:5000'</span>);
+socket.<span class="fn">emit</span>(<span class="str">'sendMessage'</span>, { text: <span class="str">"안녕"</span> });
+socket.<span class="fn">on</span>(<span class="str">'receiveMessage'</span>, (data) => {
+  <span class="fn">renderMessage</span>(data);
+});</div>
+      <div class="exp-tip">💡 BroadcastChannel → Socket.IO로 바꾸면 진짜 메신저가 돼요. 코드 구조는 거의 같고 postMessage↔emit, onmessage↔on 만 바뀝니다!</div>
+    </div>
+
+  </div><!-- /explanation-panel -->
+
+</div><!-- /app-screen -->
+
+
+<!-- ============================================================
+  JavaScript - 앱의 모든 동작 로직
+
+  HTML/CSS가 "무엇이 어디에 있는가"를 정의한다면,
+  JavaScript는 "어떻게 동작하는가"를 정의합니다.
+============================================================ -->
+<script>
+
+// ================================================================
+//  전역 변수 (여러 함수에서 공유하는 데이터)
+//  파이썬에서 함수 밖에 선언한 변수와 같아요.
+// ================================================================
+
+let myName = '';             // 내 이름 (로그인 후 설정)
+let currentRoom = 'general'; // 현재 있는 채팅방 ID
+
+// 채팅방 정보 - 파이썬의 딕셔너리(dict)와 같은 객체
+const rooms = {
+  general: {
+    name: '전체 채팅',
+    icon: '🌐',
+    desc: '모든 팀원이 볼 수 있는 채팅방'
+  },
+  study: {
+    name: '공부방',
+    icon: '📚',
+    desc: '공부 관련 대화를 나눠요'
+  },
+  free: {
+    name: '자유채팅',
+    icon: '🎮',
+    desc: '자유롭게 대화하는 공간'
+  }
+};
+
+// Set = 중복 없는 집합. 파이썬의 set()과 같아요!
+// 현재 온라인 사용자 이름들을 저장합니다.
+const onlineUsers = new Set();
+
+// BroadcastChannel 생성
+// 같은 이름('club-messenger')으로 채널을 열면 연결됩니다.
+// 여러 탭이 이 채널로 메시지를 주고받아요.
+const channel = new BroadcastChannel('club-messenger');
+
+
+// ================================================================
+//  로그인 처리
+//  버튼 클릭 또는 Enter 키 → login() 실행
+// ================================================================
+
+function login() {
+  // HTML 요소 가져오기
+  const nameInput = document.getElementById('name-input');
+
+  // .trim() = 앞뒤 공백 제거. 파이썬의 str.strip()과 같아요!
+  const name = nameInput.value.trim();
+
+  // 빈 이름이면 경고하고 함수 종료
+  if (!name) {
+    nameInput.style.borderColor = '#E53E3E'; // 빨간 테두리
+    nameInput.placeholder = '이름을 입력해주세요!';
+    nameInput.focus();
+    return; // 여기서 함수 종료 (파이썬의 return과 같음)
+  }
+
+  // 이름 저장
+  myName = name;
+
+  // sessionStorage = 탭을 닫으면 사라지는 저장소
+  // (localStorage는 탭 닫아도 유지, sessionStorage는 탭 닫으면 삭제)
+  sessionStorage.setItem('myName', name);
+
+  // 화면 전환: 로그인 화면 숨기고 앱 화면 보이기
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').classList.add('visible');
+
+  // 프로필 텍스트 업데이트
+  document.getElementById('my-name-display').textContent = name;
+  // name[0] = 이름의 첫 번째 글자 (파이썬 str[0]과 같음)
+  document.getElementById('my-avatar').textContent = name[0];
+
+  // 내 이름을 온라인 목록에 추가
+  onlineUsers.add(name);
+
+  // 다른 탭들에게 내가 접속했다고 알림
+  // postMessage()로 데이터를 보내면, 같은 채널의 다른 탭들이 받음
+  channel.postMessage({
+    type: 'join', // 메시지 종류 구분용 (chat / join / leave / online)
+    name: name
+  });
+
+  // 오늘 날짜 구분선 추가
+  addDateDivider();
+
+  // 저장된 메시지 불러오기 (localStorage에서 읽어서 화면에 표시)
+  loadMessages(currentRoom);
+
+  // 온라인 유저 목록 화면 업데이트
+  renderOnlineUsers();
+
+  // 입력창에 커서 위치시키기 (바로 타이핑 가능하게)
+  setTimeout(() => document.getElementById('msg-input').focus(), 100);
+}
+
+// 이름 입력창에서 Enter 키 누르면 로그인
+document.getElementById('name-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') login();
+});
+
+
+// ================================================================
+//  BroadcastChannel 수신 처리
+//  다른 탭에서 channel.postMessage()를 보내면 여기서 받아요.
+//  파이썬의 socket.recv() 또는 while True: msg = queue.get()과 비슷해요.
+// ================================================================
+
+channel.onmessage = (event) => {
+  const data = event.data; // 받은 데이터 (객체)
+
+  // data.type에 따라 다른 처리 (파이썬의 if-elif와 같음)
+  if (data.type === 'chat') {
+    // ── 채팅 메시지 받음 ──
+
+    // 내가 보낸 메시지는 sendMessage()에서 이미 처리했으니 스킵
+    if (data.sender === myName) return;
+
+    // localStorage에 저장 (기록 유지)
+    saveMessage(data.room, {
+      id: data.id,
+      text: data.text,
+      sender: data.sender,
+      time: data.time,
+      isMine: false
+    });
+
+    // 현재 보고 있는 채팅방의 메시지면 화면에 표시
+    if (data.room === currentRoom) {
+      renderMessage({
+        text: data.text,
+        sender: data.sender,
+        time: data.time,
+        isMine: false
+      });
+    }
+
+    // 사이드바 마지막 메시지 미리보기 업데이트
+    updateLastMessage(data.room, `${data.sender}: ${data.text}`);
+
+  } else if (data.type === 'join') {
+    // ── 누군가 입장함 ──
+    onlineUsers.add(data.name);
+    renderOnlineUsers();
+
+    // 나도 접속 중이라고 응답 (상대방 온라인 목록에 내가 보이게)
+    if (myName) {
+      channel.postMessage({ type: 'online', name: myName });
+    }
+
+  } else if (data.type === 'online') {
+    // ── 온라인 상태 공유 ──
+    onlineUsers.add(data.name);
+    renderOnlineUsers();
+
+  } else if (data.type === 'leave') {
+    // ── 누군가 퇴장함 ──
+    onlineUsers.delete(data.name);
+    renderOnlineUsers();
+  }
+};
+
+// 탭/창을 닫을 때 다른 탭들에게 알림
+window.addEventListener('beforeunload', () => {
+  if (myName) {
+    channel.postMessage({ type: 'leave', name: myName });
+  }
+});
+
+
+// ================================================================
+//  메시지 전송
+//  전송 버튼 클릭 또는 Enter 키 → sendMessage() 실행
+// ================================================================
+
+function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const text = input.value.trim(); // 앞뒤 공백 제거
+
+  // 빈 내용이거나 로그인 안 된 경우 → 전송하지 않음
+  if (!text || !myName) return;
+
+  // 현재 시간 구하기
+  const now = new Date();
+
+  // padStart(2, '0') = 한 자리 숫자 앞에 '0' 붙이기
+  // 예: 9 → "09", 13 → "13"
+  // 파이썬의 f"{hour:02d}" 와 같은 역할
+  const hour   = String(now.getHours()).padStart(2, '0');
+  const minute = String(now.getMinutes()).padStart(2, '0');
+  const time   = `${hour}:${minute}`;
+
+  // 메시지 데이터 객체 (파이썬 딕셔너리와 같음)
+  const msgData = {
+    id:     Date.now(),   // 고유 ID (현재 시간을 밀리초로, 항상 유일함)
+    text:   text,
+    sender: myName,
+    room:   currentRoom,
+    time:   time
+  };
+
+  // 1️⃣ 내 화면에 즉시 표시
+  renderMessage({ ...msgData, isMine: true });
+  // ...msgData 는 "msgData의 모든 속성을 펼쳐서 넣기"
+  // 파이썬의 {**msgData, 'isMine': True}와 같아요!
+
+  // 2️⃣ localStorage에 저장 (새로고침해도 남아있게)
+  saveMessage(currentRoom, { ...msgData, isMine: true });
+
+  // 3️⃣ 다른 탭들에게 전송 (BroadcastChannel)
+  channel.postMessage({ type: 'chat', ...msgData });
+
+  // 4️⃣ 사이드바 마지막 메시지 업데이트
+  updateLastMessage(currentRoom, `나: ${text}`);
+
+  // 5️⃣ 입력창 비우고 포커스 유지
+  input.value = '';
+  input.style.height = '40px'; // 높이 초기화
+  input.focus();
+}
+
+
+// ================================================================
+//  메시지를 화면에 표시 (말풍선 생성)
+//  DOM 조작: 새 요소를 만들어서 채팅창에 추가합니다.
+// ================================================================
+
+function renderMessage(msg) {
+  const container = document.getElementById('chat-messages');
+
+  // "첫 메시지를 보내보세요!" 안내 제거
+  const emptyState = document.getElementById('empty-state');
+  if (emptyState) emptyState.remove();
+
+  // ── 전체 행 (아바타 + 말풍선) ──
+  const row = document.createElement('div');
+  // isMine이 true면 'msg-row mine', 아니면 'msg-row'
+  row.className = `msg-row ${msg.isMine ? 'mine' : ''}`;
+
+  // ── 아바타 (이름 첫 글자 원형) ──
+  const avatarEl = document.createElement('div');
+  avatarEl.className = 'msg-avatar';
+  avatarEl.textContent = msg.sender ? msg.sender[0] : '?';
+  // 내 메시지엔 아바타 불필요 (오른쪽 정렬이라 좌측 아바타 없어도 됨)
+  if (msg.isMine) avatarEl.style.display = 'none';
+
+  // ── 내용 감싸개 ──
+  const contentWrap = document.createElement('div');
+  contentWrap.className = 'msg-content-wrap';
+
+  // 보낸 사람 이름 (상대방 메시지에만 표시)
+  if (!msg.isMine && msg.sender) {
+    const nameEl = document.createElement('div');
+    nameEl.className = 'msg-sender-name';
+    // textContent 사용 = XSS 공격 방지
+    // (innerHTML 사용 시 <script> 같은 코드가 실행될 수 있어 위험!)
+    nameEl.textContent = msg.sender;
+    contentWrap.appendChild(nameEl);
+  }
+
+  // ── 말풍선 + 시간 행 ──
+  const bubbleRow = document.createElement('div');
+  bubbleRow.className = 'bubble-row';
+
+  // 말풍선
+  const bubble = document.createElement('div');
+  bubble.className = `msg-bubble ${msg.isMine ? 'mine' : 'others'}`;
+  bubble.textContent = msg.text; // textContent = 안전하게 텍스트만 설정
+
+  // 시간
+  const timeEl = document.createElement('div');
+  timeEl.className = 'msg-time';
+  timeEl.textContent = msg.time || '';
+
+  // 조립: 작은 단위부터 큰 단위로 붙이기
+  bubbleRow.appendChild(bubble);
+  bubbleRow.appendChild(timeEl);
+  contentWrap.appendChild(bubbleRow);
+  row.appendChild(avatarEl);
+  row.appendChild(contentWrap);
+  container.appendChild(row); // 채팅창에 최종 추가
+
+  // 맨 아래로 스크롤 (새 메시지가 보이게)
+  scrollToBottom();
+}
+
+
+// ================================================================
+//  날짜 구분선 추가 ("오늘 · 2025.05.23")
+// ================================================================
+
+function addDateDivider() {
+  const container = document.getElementById('chat-messages');
+  const divider = document.createElement('div');
+  divider.className = 'date-divider';
+
+  // 오늘 날짜 구하기
+  const now = new Date();
+  const year  = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0'); // 0~11이라 +1
+  const day   = String(now.getDate()).padStart(2, '0');
+
+  const span = document.createElement('span');
+  span.textContent = `오늘 · ${year}.${month}.${day}`;
+  divider.appendChild(span);
+  container.appendChild(divider);
+}
+
+
+// ================================================================
+//  채팅창 맨 아래로 스크롤
+// ================================================================
+
+function scrollToBottom() {
+  const container = document.getElementById('chat-messages');
+  // scrollTop = 현재 스크롤 위치
+  // scrollHeight = 전체 콘텐츠 높이 (보이는 것 + 숨겨진 것)
+  // scrollTop을 최대로 설정 → 맨 아래로 이동
+  container.scrollTop = container.scrollHeight;
+}
+
+
+// ================================================================
+//  채팅방 전환
+//  사이드바의 방 클릭 → enterRoom(roomId) 실행
+// ================================================================
+
+function enterRoom(roomId) {
+  if (currentRoom === roomId) return; // 이미 같은 방이면 무시
+
+  currentRoom = roomId;
+
+  // 헤더 업데이트
+  const room = rooms[roomId];
+  document.getElementById('current-room-icon').textContent = room.icon;
+  document.getElementById('current-room-name').textContent = room.name;
+  document.getElementById('current-room-desc').textContent = room.desc;
+
+  // 사이드바 활성 표시 업데이트
+  // querySelectorAll = CSS 선택자로 여러 요소 한 번에 가져오기
+  // forEach = 파이썬의 for 루프와 같음
+  document.querySelectorAll('.room-item').forEach(item => {
+    item.classList.remove('active');
+  });
+  document.getElementById(`room-${roomId}`).classList.add('active');
+
+  // 채팅창 비우고 해당 방 메시지 불러오기
+  const container = document.getElementById('chat-messages');
+  container.innerHTML = ''; // 내용 전체 삭제 (파이썬의 list.clear()와 같음)
+
+  addDateDivider();
+  loadMessages(roomId);
+}
+
+
+// ================================================================
+//  메시지 저장 (localStorage에 JSON으로 저장)
+// ================================================================
+
+function saveMessage(roomId, msg) {
+  // 방마다 다른 키 사용: 'messages-general', 'messages-study', ...
+  const key = `messages-${roomId}`;
+
+  // 기존 저장된 메시지 불러오기
+  // || '[]' = null이면 빈 배열 문자열 사용 (파이썬의 or []와 같음)
+  const existing = JSON.parse(localStorage.getItem(key) || '[]');
+
+  existing.push(msg); // 새 메시지 추가 (파이썬의 list.append()와 같음)
+
+  // 최근 200개만 유지 (용량 절약)
+  // slice(-200) = 마지막 200개만 잘라내기
+  // 파이썬의 list[-200:]과 같아요!
+  const trimmed = existing.slice(-200);
+
+  // 다시 저장 (객체 → 문자열 변환 후 저장)
+  localStorage.setItem(key, JSON.stringify(trimmed));
+}
+
+
+// ================================================================
+//  저장된 메시지 불러오기 (localStorage → 화면)
+// ================================================================
+
+function loadMessages(roomId) {
+  const key = `messages-${roomId}`;
+  const messages = JSON.parse(localStorage.getItem(key) || '[]');
+
+  // 저장된 메시지가 없으면 빈 상태 표시
+  if (messages.length === 0) {
+    const container = document.getElementById('chat-messages');
+    // innerHTML은 여기선 우리가 직접 작성한 HTML이라 안전
+    container.innerHTML = `
+      <div class="chat-empty" id="empty-state">
+        <div class="chat-empty-icon">💬</div>
+        <div class="chat-empty-text">첫 메시지를 보내보세요!</div>
+      </div>
+    `;
+    return;
+  }
+
+  // 각 메시지를 화면에 렌더링
+  // ...spread로 객체 복사하고 isMine 다시 계산
+  messages.forEach(msg => {
+    renderMessage({
+      ...msg,
+      // 저장 시점과 현재 사용자가 다를 수 있으므로 다시 계산
+      isMine: msg.sender === myName
+    });
+  });
+
+  // 사이드바 마지막 메시지 업데이트
+  if (messages.length > 0) {
+    const last = messages[messages.length - 1]; // 배열의 마지막 요소
+    const prefix = last.sender === myName ? '나' : last.sender;
+    updateLastMessage(roomId, `${prefix}: ${last.text}`);
+  }
+}
+
+
+// ================================================================
+//  사이드바 마지막 메시지 미리보기 업데이트
+// ================================================================
+
+function updateLastMessage(roomId, text) {
+  const el = document.getElementById(`last-${roomId}`);
+  if (!el) return;
+  // 20자 초과하면 잘라서 "..." 붙이기
+  // slice(0, 20) = 첫 20글자. 파이썬의 str[:20]과 같음!
+  el.textContent = text.length > 20 ? text.slice(0, 20) + '…' : text;
+}
+
+
+// ================================================================
+//  온라인 유저 목록 렌더링
+// ================================================================
+
+function renderOnlineUsers() {
+  const list = document.getElementById('online-list');
+  list.innerHTML = ''; // 기존 목록 초기화
+
+  if (onlineUsers.size === 0) {
+    list.innerHTML = '<div class="online-user"><span class="online-name" style="color:var(--text3);font-size:12px">아직 없어요</span></div>';
+    return;
+  }
+
+  // Set → 배열로 변환 후 이름 기준 정렬
+  // [...onlineUsers] = Set을 배열로 펼치기 (스프레드 연산자)
+  // 파이썬의 sorted(list(online_users))와 같아요!
+  [...onlineUsers].sort().forEach(name => {
+    const isMe = (name === myName);
+
+    const item = document.createElement('div');
+    item.className = 'online-user';
+
+    // 보안: escapeHTML로 특수문자 처리 (XSS 방지)
+    const safeName = escapeHTML(name);
+
+    item.innerHTML = `
+      <div class="online-dot"></div>
+      <div class="online-name">${safeName}</div>
+      ${isMe ? '<div class="online-me">(나)</div>' : ''}
+    `;
+
+    list.appendChild(item);
+  });
+}
+
+
+// ================================================================
+//  HTML 특수문자 이스케이프 (XSS 보안 처리)
+//  사용자 입력값을 innerHTML에 넣을 때 반드시 처리해야 합니다.
+//
+//  예: <script>alert('해킹')</script> → &lt;script&gt;...
+//      이렇게 해야 실제로 실행되지 않고 그냥 텍스트로 보입니다.
+// ================================================================
+
+function escapeHTML(str) {
+  return str
+    .replace(/&/g, '&amp;')   // & → &amp;
+    .replace(/</g, '&lt;')    // < → &lt;
+    .replace(/>/g, '&gt;')    // > → &gt;
+    .replace(/"/g, '&quot;')  // " → &quot;
+    .replace(/'/g, '&#039;'); // ' → &#039;
+}
+
+
+// ================================================================
+//  키보드 이벤트 처리 (입력창에서)
+//  Enter = 전송
+//  Shift+Enter = 줄바꿈 (Enter만 막고 기본 동작 허용)
+// ================================================================
+
+function handleKeydown(event) {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    // event.preventDefault() = 기본 동작(줄바꿈) 막기
+    event.preventDefault();
+    sendMessage();
+  }
+}
+
+
+// ================================================================
+//  textarea 자동 높이 조절
+//  입력 내용이 많아지면 입력창 높이가 자동으로 늘어납니다.
+// ================================================================
+
+function autoResize(textarea) {
+  textarea.style.height = '40px';                           // 높이 초기화
+  const newHeight = Math.min(textarea.scrollHeight, 120);  // 최대 120px
+  textarea.style.height = newHeight + 'px';
+}
+
+
+// ================================================================
+//  코드 설명 패널 열기/닫기 토글
+// ================================================================
+
+function toggleExplanation() {
+  const panel = document.getElementById('explanation-panel');
+  // classList.toggle() = 클래스가 있으면 제거, 없으면 추가
+  // 파이썬의 if x in list: list.remove(x) else: list.append(x)와 같음
+  panel.classList.toggle('open');
+}
+
+
+// ================================================================
+//  페이지 로드 시 초기화
+//  window.addEventListener('load', ...) = 페이지가 완전히 로드된 후 실행
+// ================================================================
+
+window.addEventListener('load', () => {
+
+  // sessionStorage에 이름이 저장되어 있으면 자동 로그인
+  // (새로고침 시 다시 이름 입력 안 해도 됨)
+  const savedName = sessionStorage.getItem('myName');
+  if (savedName) {
+    document.getElementById('name-input').value = savedName;
+    login();
+  }
+
+  // 각 채팅방의 마지막 메시지를 사이드바에 미리 표시
+  // Object.keys() = 딕셔너리의 키 목록. 파이썬의 dict.keys()와 같음!
+  Object.keys(rooms).forEach(roomId => {
+    const key = `messages-${roomId}`;
+    const msgs = JSON.parse(localStorage.getItem(key) || '[]');
+    if (msgs.length > 0) {
+      const last = msgs[msgs.length - 1];
+      updateLastMessage(roomId, `${last.sender}: ${last.text}`);
+    }
+  });
+
+});
+
+</script>
+</body>
+</html>
+
