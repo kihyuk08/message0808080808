@@ -1,0 +1,36 @@
+# ========================================
+# .gitignore - Git에서 제외할 파일 목록
+# ========================================
+# 이 파일에 적힌 파일/폴더는 git add 해도 무시돼요.
+# 비밀 설정(.env)과 자동 생성 파일(node_modules)을 GitHub에 올리지 않기 위해 필요해요.
+# 담당: 기혁 (총괄)
+
+# --- 의존성 폴더 ---
+# npm install 하면 자동으로 생성돼요. 용량이 크니까 Git에 올리지 않아요.
+node_modules/
+backend/node_modules/
+
+# --- 비밀 설정 파일 ---
+# !!! 절대 GitHub에 올리면 안 돼요 !!!
+# DB 주소, JWT 비밀키, API 키 등이 들어있어요
+.env
+backend/.env
+*.env.local
+
+# --- 빌드 결과물 ---
+# npm run build 하면 생성돼요. 필요할 때마다 다시 빌드하면 돼요.
+dist/
+
+# --- OS 자동 생성 파일 ---
+.DS_Store        # Mac에서 자동 생성
+Thumbs.db        # Windows에서 자동 생성
+
+# --- 에디터 설정 ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- 로그 파일 ---
+*.log
+npm-debug.log*

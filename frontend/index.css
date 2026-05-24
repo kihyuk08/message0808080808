@@ -1,0 +1,51 @@
+/*
+  📁 frontend/index.css - 전역 CSS 파일 (예지 담당)
+  ========================================
+  이 파일은 앱 전체에 적용되는 기본 스타일을 설정해요.
+  main.jsx에서 import './index.css' 로 불러와요.
+
+  Tailwind CSS의 세 가지 레이어:
+  - @tailwind base       : 브라우저 기본 스타일을 초기화해요 (margin: 0, box-sizing 등)
+  - @tailwind components : Tailwind로 만든 컴포넌트 클래스들
+  - @tailwind utilities  : flex, gap, p-4 같은 유틸리티 클래스들
+  이 세 줄이 없으면 Tailwind 스타일이 전혀 적용되지 않아요!
+*/
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 전역 기본 스타일 */
+* {
+  box-sizing: border-box;  /* padding을 포함해서 너비 계산 (더 직관적) */
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+  background-color: #f7f6f2;  /* 앱 배경색 (크림색) */
+  color: #1a1a1a;             /* 기본 텍스트 색 */
+  -webkit-font-smoothing: antialiased;  /* Mac에서 폰트를 더 부드럽게 */
+}
+
+/* 채팅 메시지 영역 스크롤바 스타일 (예쁘게) */
+.chat-messages::-webkit-scrollbar {
+  width: 4px;
+}
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-messages::-webkit-scrollbar-thumb {
+  background: #d1cec8;
+  border-radius: 2px;
+}
+
+/* 입력창 포커스 시 외곽선 제거 (Tailwind outline-none 보완) */
+textarea:focus,
+input:focus {
+  outline: none;
+}
+
+/* 모바일에서 기본 탭 하이라이트 색 제거 */
+* {
+  -webkit-tap-highlight-color: transparent;
+}

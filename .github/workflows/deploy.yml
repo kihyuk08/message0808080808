@@ -1,0 +1,100 @@
+# ========================================
+# 📁 .github/workflows/deploy.yml - GitHub Pages 자동 배포 설정
+# ========================================
+# GitHub에 코드를 push하면 자동으로:
+#  1. 프론트엔드 코드를 빌드하고
+#  2. GitHub Pages에 올려줘요
+#
+# 이 파일이 있으면 매번 수동으로 빌드 안 해도 돼요!
+#
+# ⚠️ 이 파일을 쓰려면 먼저 GitHub 레포에서 설정해야 해요:
+#  Settings → Pages → Source: "GitHub Actions" 선택
+
+name: GitHub Pages 배포
+
+# ─────────────────────────────────────
+# 언제 이 작업을 실행할지 설정
+# ─────────────────────────────────────
+on:
+  push:
+    branches:
+      - main  # main 브랜치에 push할 때만 실행
+               # 다른 브랜치 이름을 쓴다면 바꿔요 (예: master)
+
+# GitHub Pages에 쓰기 권한 허용
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 동시에 여러 배포가 겹치지 않게 설정
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # ─────────────────────────────────────
+  # 1단계: 빌드 (코드를 배포 가능한 파일로 변환)
+  # ─────────────────────────────────────
+  build:
+    runs-on: ubuntu-latest  # GitHub의 Linux 서버에서 실행
+
+    steps:
+      # 레포지토리 코드 가져오기
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      # Node.js 설치 (우리 코드를 실행하려면 필요)
+      - name: Node.js 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'  # Node 20 버전 사용
+          cache: 'npm'        # npm 패키지 캐시 (빌드 속도 향상)
+
+      # GitHub Pages 설정
+      - name: GitHub Pages 설정
+        uses: actions/configure-pages@v4
+
+      # 프론트엔드 패키지 설치 (node_modules 생성)
+      - name: npm 패키지 설치
+        run: npm install
+
+      # 환경변수 파일 생성
+      # ⚠️ 중요: 아래 값들은 GitHub 레포 → Settings → Secrets and variables
+      #          → Actions → New repository secret 에서 설정해야 해요!
+      #
+      # 만들어야 할 Secrets:
+      #  - VITE_API_URL    : Render 백엔드 주소 (예: https://xxx.onrender.com/api)
+      #  - VITE_SOCKET_URL : Render 소켓 주소  (예: https://xxx.onrender.com)
+      - name: 환경변수 파일 생성
+        run: |
+          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > frontend/.env.production
+          echo "VITE_SOCKET_URL=${{ secrets.VITE_SOCKET_URL }}" >> frontend/.env.production
+
+      # 빌드 실행 (frontend/ → dist/ 폴더로 변환)
+      - name: 프론트엔드 빌드
+        run: npm run build
+        env:
+          NODE_ENV: production  # 프로덕션 모드로 빌드
+
+      # 빌드 결과물(dist/)을 GitHub Pages가 읽을 수 있는 형태로 묶기
+      - name: 빌드 결과물 업로드
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'  # vite.config.js의 build.outDir 와 일치해야 해요
+
+  # ─────────────────────────────────────
+  # 2단계: 배포 (빌드된 파일을 GitHub Pages에 올리기)
+  # ─────────────────────────────────────
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}  # 배포된 URL (자동으로 채워짐)
+
+    runs-on: ubuntu-latest
+    needs: build  # build 단계가 끝난 뒤에 실행
+
+    steps:
+      - name: GitHub Pages에 배포
+        id: deployment
+        uses: actions/deploy-pages@v4

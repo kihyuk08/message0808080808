@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- 모바일 반응형을 위한 설정 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 탭에 표시되는 제목 -->
+    <title>동아리 메신저</title>
+    <!-- 파비콘 (탭에 표시되는 작은 아이콘) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>" />
+  </head>
+  <body>
+    <!--
+      id="root" 인 div에 React 앱 전체가 들어가요.
+      처음엔 비어있다가 main.jsx의 ReactDOM.createRoot()가 여기에 React 컴포넌트를 그려줘요.
+    -->
+    <div id="root"></div>
+
+    <!--
+      type="module": ES Module 방식으로 JS를 불러와요 (import/export 사용 가능)
+      /main.jsx: Vite가 frontend/main.jsx를 가리켜요 (root를 frontend/로 설정했으니까)
+    -->
+    <script type="module" src="/main.jsx"></script>
+  </body>
+</html>
