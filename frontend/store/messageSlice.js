@@ -77,12 +77,10 @@ const messageSlice = createSlice({
   }
 })
 
-export const {
-  setMessages,
-  addMessage,
-  setCurrentRoom,
-  clearMessages,
-  setLoading
-} = messageSlice.actions
+export const setMessages    = messageSlice.actions.setMessages
+export const addMessage     = messageSlice.actions.addMessage
+export const setCurrentRoom = messageSlice.actions.setCurrentRoom
+export const clearMessages  = messageSlice.actions.clearMessages
+export const setLoading     = messageSlice.actions.setLoading
 
 export default messageSlice.reducer

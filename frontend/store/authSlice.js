@@ -76,7 +76,10 @@ const authSlice = createSlice({
 })
 
 // 액션 생성자 내보내기 (컴포넌트에서 dispatch(setUser(...)) 식으로 사용)
-export const { setUser, updateUser, logoutUser } = authSlice.actions
+// 명시적으로 각각 export 해야 Vite 빌드 시 정적 분석이 가능해요
+export const setUser    = authSlice.actions.setUser
+export const updateUser = authSlice.actions.updateUser
+export const logoutUser = authSlice.actions.logoutUser
 
 // 리듀서 내보내기 (store/index.js에서 combine할 때 사용)
 export default authSlice.reducer
