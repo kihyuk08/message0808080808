@@ -28,7 +28,7 @@ export default defineConfig({
   //
   // 만약 도메인이 https://아이디.github.io (레포 이름 없음) 라면
   // base: '/' 로 설정해도 돼요.
-  base: process.env.NODE_ENV === 'production' ? '/message0808080808-main/' : '/',
+  base: process.env.NODE_ENV === 'production' ? '/message0808080808/' : '/',
 
   server: {
     port: 5173,
