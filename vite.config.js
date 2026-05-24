@@ -23,8 +23,7 @@ export default defineConfig({
   // GitHub Pages URL이 https://아이디.github.io/레포이름/ 이라면
   // base: '/레포이름/' 으로 설정해야 해요.
   //
-  // ⚠️ 아래 '/messenger/' 부분을 실제 GitHub 레포지토리 이름으로 바꾸세요!
-  // 예) 레포 이름이 'my-chat-app' 이라면 → base: '/my-chat-app/'
+  // ⚠️ 아래 '/message0808080808/' 부분은 GitHub 레포지토리 이름이에요.
   //
   // 만약 도메인이 https://아이디.github.io (레포 이름 없음) 라면
   // base: '/' 로 설정해도 돼요.
