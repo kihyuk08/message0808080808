@@ -48,7 +48,7 @@ jobs:
       - name: Node.js 설치
         uses: actions/setup-node@v4
         with:
-          node-version: '20'  # Node 20 버전 사용
+          node-version: '24'  # Node 24 버전 사용
 
       # GitHub Pages 설정
       - name: GitHub Pages 설정
