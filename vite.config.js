@@ -9,10 +9,17 @@
 
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { fileURLToPath } from 'url'
+import { dirname, resolve } from 'path'
+
+// ES Module 환경에서 __dirname을 직접 쓸 수 없어서 이렇게 만들어요
+// __dirname = 이 파일(vite.config.js)이 있는 폴더의 절대 경로
+const __filename = fileURLToPath(import.meta.url)
+const __dirname  = dirname(__filename)
 
 export default defineConfig({
-  // frontend/ 폴더를 소스 루트로 설정
-  root: 'frontend',
+  // frontend/ 폴더를 소스 루트로 설정 (절대 경로로 지정해서 어디서 실행해도 동일)
+  root: resolve(__dirname, 'frontend'),
 
   // React JSX를 브라우저용 JS로 변환
   plugins: [react()],
@@ -20,13 +27,7 @@ export default defineConfig({
   // ─────────────────────────────────────
   // base: GitHub Pages 배포 시 경로 설정
   // ─────────────────────────────────────
-  // GitHub Pages URL이 https://아이디.github.io/레포이름/ 이라면
-  // base: '/레포이름/' 으로 설정해야 해요.
-  //
-  // ⚠️ 아래 '/message0808080808/' 부분은 GitHub 레포지토리 이름이에요.
-  //
-  // 만약 도메인이 https://아이디.github.io (레포 이름 없음) 라면
-  // base: '/' 로 설정해도 돼요.
+  // GitHub Pages URL: https://kihyuk08.github.io/message0808080808/
   base: process.env.NODE_ENV === 'production' ? '/message0808080808/' : '/',
 
   server: {
@@ -46,8 +47,8 @@ export default defineConfig({
   },
 
   build: {
-    // 빌드 결과물 저장 위치 (프로젝트 루트의 dist/ 폴더)
-    outDir: '../dist',
+    // 빌드 결과물 저장 위치 (절대 경로로 지정 → 프로젝트 루트의 dist/ 폴더)
+    outDir:     resolve(__dirname, 'dist'),
     emptyOutDir: true
   }
 })
