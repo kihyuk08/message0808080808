@@ -47,12 +47,6 @@ function Sidebar({ onSelectRoom, selectedRoomId }) {
 
         {/* 내 프로필 영역 */}
         <div className="flex items-center gap-2">
-          <UserAvatar
-            name={user?.name || '나'}
-            imageUrl={user?.profileImage}
-            size="sm"
-            isOnline={true}  // 나는 항상 온라인
-          />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">{user?.name || '사용자'}</p>
             <p className="text-xs text-gray-400 truncate">{user?.statusMessage || '상태메시지 없음'}</p>
